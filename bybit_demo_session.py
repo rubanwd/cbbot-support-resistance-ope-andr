@@ -159,20 +159,20 @@ class BybitDemoSession:
                 raise Exception(f"API Error: {response['retMsg']}")
 
             open_orders = response['result']['list']
-            current_time = time.time()
-            orders_to_cancel = []
+            # current_time = time.time()
+            # orders_to_cancel = []
 
-            for order in open_orders:
-                created_time = int(order['createdTime']) / 1000
-                if current_time - created_time > 180:  # 180 seconds = 3 minutes
-                    orders_to_cancel.append(order)
+            # for order in open_orders:
+            #     created_time = int(order['createdTime']) / 1000
+            #     if current_time - created_time > 180:  # 180 seconds = 3 minutes
+            #         orders_to_cancel.append(order)
 
-            if orders_to_cancel:
-                for order in orders_to_cancel:
-                    self.cancel_order(order['orderId'], symbol)
-                    print(f"Order {order['orderId']} cancelled as it was older than 3 minutes.")
-            else:
-                print("No orders older than 3 minutes.")
+            # if orders_to_cancel:
+            #     for order in orders_to_cancel:
+            #         self.cancel_order(order['orderId'], symbol)
+            #         print(f"Order {order['orderId']} cancelled as it was older than 3 minutes.")
+            # else:
+            #     print("No orders older than 3 minutes.")
 
             return open_orders
         except Exception as e:

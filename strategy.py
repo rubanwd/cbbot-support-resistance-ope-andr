@@ -1,6 +1,7 @@
 # strategy.py
 
-import pandas as pd
+import pandas as pd  # Add this import statement
+import time
 
 class Strategy:
     def __init__(self):
@@ -19,11 +20,26 @@ class Strategy:
         resistance = df['high'].rolling(window=20).max().iloc[-1]  # recent highest high
         return support, resistance
 
-    def support_resistance_strategy(self, current_price, support, resistance):
-        # Open long if the price is near support, open short if it's near resistance
-        threshold = 0.01  # Example: 1% threshold for proximity to support/resistance
-        if current_price <= support * (1 + threshold):
-            return 'long'
-        elif current_price >= resistance * (1 - threshold):
-            return 'short'
+    def wait_for_order_fill(self, symbol, long_order_result, short_order_result, data_fetcher):
+        """Waits for one of the limit orders to be filled, and returns the filled order."""
+        long_order_id = long_order_result['orderId']
+        short_order_id = short_order_result['orderId']
+
+        while True:
+            # Check the status of both orders every 2 seconds
+            time.sleep(2)
+
+            open_orders = data_fetcher.get_open_orders(symbol)
+            open_order_ids = [order['orderId'] for order in open_orders]
+
+            if long_order_id not in open_order_ids:
+                print(f"Long order {long_order_id} filled.")
+                return long_order_result
+
+            if short_order_id not in open_order_ids:
+                print(f"Short order {short_order_id} filled.")
+                return short_order_result
+
+            print("Waiting for one of the orders to be filled...")
+
         return None

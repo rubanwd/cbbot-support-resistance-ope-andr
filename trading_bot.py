@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 import os
 import pandas as pd
 from bybit_demo_session import BybitDemoSession
-from strategy import Strategies
+from strategy import Strategy
 
 class TradingBot:
     def __init__(self):
@@ -24,7 +24,7 @@ class TradingBot:
 
         self.data_fetcher = BybitDemoSession(self.api_key, self.api_secret)
 
-        self.strategy = Strategies()
+        self.strategy = Strategy()
         self.indicators = Indicators()
         self.risk_management = RiskManagement(
             atr_multiplier=float(os.getenv("ATR_MULTIPLIER", 1.0)),
@@ -42,14 +42,16 @@ class TradingBot:
         logging.basicConfig(filename='trading_bot.log', level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
     def job(self):
+        print("-----------------------------")
+
         last_closed_position = self.data_fetcher.get_last_closed_position(self.symbol)
         if last_closed_position:
             last_closed_time = int(last_closed_position['updatedTime']) / 1000
             current_time = time.time()
             time_since_last_close = current_time - last_closed_time
             print(f"Time since last closed position: {int(time_since_last_close)} seconds")
-            if time_since_last_close < 60:
-                print("The last closed position was less than 1 minute ago. A new order will not be placed.")
+            if time_since_last_close < 900:  # 15 minutes
+                print("The last closed position was less than 15 minutes ago. A new order will not be placed.")
                 return
             
         is_open_positions = self.data_fetcher.get_open_positions(self.symbol)
@@ -72,9 +74,6 @@ class TradingBot:
         # Identify support and resistance levels
         support, resistance = self.strategy.identify_support_resistance(df)
 
-        # Determine market trend based on last 5-10 hours
-        trend = self.strategy.determine_market_trend(df, hours=5)
-
         # Get the latest price
         current_price = self.data_fetcher.get_real_time_price(self.symbol)
         if current_price is None:
@@ -83,35 +82,62 @@ class TradingBot:
 
         print(f"Support Level: {support:.2f}, Resistance Level: {resistance:.2f}")
         print(f"Current Price: {current_price:.2f}")
-        print(f"Market Trend: {trend}")
 
-        # Place limit order at support or resistance based on the trend
-        position_type, order_price = self.strategy.support_resistance_strategy(current_price, support, resistance, trend)
+        # Place limit orders for support (long) and resistance (short)
+        long_order_price = support
+        short_order_price = resistance
 
-        if position_type and order_price:
-            stop_loss, take_profit = self.risk_management.calculate_dynamic_risk_management(df, order_price, position_type)
-            print(f"Placing {position_type.upper()} order at price: {order_price:.2f}")
-            print(f"Stop Loss: {stop_loss:.2f}")
-            print(f"Take Profit: {take_profit:.2f}")
+        # Define percentages
+        take_profit_percentage = 0.05 / 100  # 0.05%
+        stop_loss_percentage = 0.15 / 100    # 0.15%
 
-            side = 'Buy' if position_type == 'long' else 'Sell'
+        # Calculate multipliers for long and short positions
+        long_tp_multiplier = 1 + take_profit_percentage  # 1.005 for 0.5%
+        long_sl_multiplier = 1 - stop_loss_percentage    # 0.985 for 1.5%
+        short_tp_multiplier = 1 - take_profit_percentage # 0.995 for 0.5%
+        short_sl_multiplier = 1 + stop_loss_percentage   # 1.015 for 1.5%
 
-            order_result = self.data_fetcher.place_order(
-                symbol=self.symbol,
-                side=side,
-                qty=self.quantity,
-                current_price=order_price,  # Use support or resistance as the limit price
-                leverage=self.leverage,
-                stop_loss=stop_loss,
-                take_profit=take_profit
-            )
+        # Risk management (Take Profit and Stop Loss)
+        long_tp = long_order_price * long_tp_multiplier
+        long_sl = long_order_price * long_sl_multiplier
+        short_tp = short_order_price * short_tp_multiplier
+        short_sl = short_order_price * short_sl_multiplier
 
-            if order_result:
-                print(f"Order successfully placed: {order_result}")
-            else:
-                print("Failed to place order.")
+
+        # Place two limit orders (long at support, short at resistance)
+        long_order_result = self.data_fetcher.place_order(
+            symbol=self.symbol,
+            side='Buy',
+            qty=self.quantity,
+            current_price=long_order_price,
+            leverage=self.leverage,
+            stop_loss=long_sl,
+            take_profit=long_tp
+        )
+        
+        short_order_result = self.data_fetcher.place_order(
+            symbol=self.symbol,
+            side='Sell',
+            qty=self.quantity,
+            current_price=short_order_price,
+            leverage=self.leverage,
+            stop_loss=short_sl,
+            take_profit=short_tp
+        )
+
+        if long_order_result or short_order_result:
+            print("Waiting for one of the orders to be filled...")
+            # Wait for one of the limit orders to be filled
+            filled_order = self.strategy.wait_for_order_fill(self.symbol, long_order_result, short_order_result, self.data_fetcher)
+
+
+            if filled_order:
+                print(f"Order filled: {filled_order}")
+                # Cancel the other order
+                unfilled_order = long_order_result if filled_order == short_order_result else short_order_result
+                self.data_fetcher.cancel_order(unfilled_order['orderId'], self.symbol)
         else:
-            print("No suitable signals for position opening.")
+            print("Failed to place orders.")
 
     def run(self):
         self.job()
@@ -123,3 +149,4 @@ class TradingBot:
 if __name__ == "__main__":
     bot = TradingBot()
     bot.run()
+
