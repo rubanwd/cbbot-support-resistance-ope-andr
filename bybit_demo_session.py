@@ -106,8 +106,8 @@ class BybitDemoSession:
                 "positionIdx": position_idx,  # Use the positionIdx determined above
             }
 
-            if stop_loss:
-                order_params["stopLoss"] = str(stop_loss)
+            # if stop_loss:
+            #     order_params["stopLoss"] = str(stop_loss)
             if take_profit:
                 order_params["takeProfit"] = str(take_profit)
 
