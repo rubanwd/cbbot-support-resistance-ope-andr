@@ -114,7 +114,7 @@ class TradingBot:
             qty=self.quantity,
             current_price=long_order_price,
             leverage=self.leverage,
-            stop_loss=long_sl,
+            # stop_loss=long_sl,
             take_profit=long_tp
         )
         
@@ -124,7 +124,7 @@ class TradingBot:
             qty=self.quantity,
             current_price=short_order_price,
             leverage=self.leverage,
-            stop_loss=short_sl,
+            # stop_loss=short_sl,
             take_profit=short_tp
         )
 
