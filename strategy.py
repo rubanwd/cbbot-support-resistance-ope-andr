@@ -16,8 +16,8 @@ class Strategy:
 
     def identify_support_resistance(self, df):
         # Identify the most recent support and resistance levels
-        support = df['low'].rolling(window=20).min().iloc[-1]  # recent lowest low
-        resistance = df['high'].rolling(window=20).max().iloc[-1]  # recent highest high
+        support = df['low'].rolling(window=60).min().iloc[-1]  # recent lowest low
+        resistance = df['high'].rolling(window=60).max().iloc[-1]  # recent highest high
         return support, resistance
 
     def wait_for_order_fill(self, symbol, long_order_result, short_order_result, data_fetcher):
