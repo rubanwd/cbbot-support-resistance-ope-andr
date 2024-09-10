@@ -33,6 +33,9 @@ class TradingBot:
         self.symbol = os.getenv("TRADING_SYMBOL", 'BTCUSDT')
         self.quantity = float(os.getenv("TRADE_QUANTITY", 0.03))
 
+        self.take_profit_percentage = float(os.getenv("TAKE_PROFIT_PERCENTAGE", 0.15))
+        self.stop_loss_percentage = float(os.getenv("STOP_LOSE_PERCENTAGE", 0.15))
+
         # Load trading parameters
         self.interval = os.getenv("TRADING_INTERVAL", '1')
         self.limit = int(os.getenv("TRADING_LIMIT", 100))
@@ -88,14 +91,14 @@ class TradingBot:
         short_order_price = resistance
 
         # Define percentages
-        take_profit_percentage = 0.05 / 100  # 0.05%
-        stop_loss_percentage = 0.15 / 100    # 0.15%
+        # take_profit_percentage = 0.05 / 100  # 0.05%
+        # stop_loss_percentage = 0.15 / 100    # 0.15%
 
         # Calculate multipliers for long and short positions
-        long_tp_multiplier = 1 + take_profit_percentage  # 1.005 for 0.5%
-        long_sl_multiplier = 1 - stop_loss_percentage    # 0.985 for 1.5%
-        short_tp_multiplier = 1 - take_profit_percentage # 0.995 for 0.5%
-        short_sl_multiplier = 1 + stop_loss_percentage   # 1.015 for 1.5%
+        long_tp_multiplier = 1 + self.take_profit_percentage / 100  # 1.005 for 0.5%
+        long_sl_multiplier = 1 - self.stop_loss_percentage / 100    # 0.985 for 1.5%
+        short_tp_multiplier = 1 - self.take_profit_percentage / 100 # 0.995 for 0.5%
+        short_sl_multiplier = 1 + self.stop_loss_percentage / 100   # 1.015 for 1.5%
 
         # Risk management (Take Profit and Stop Loss)
         long_tp = long_order_price * long_tp_multiplier
