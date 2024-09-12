@@ -53,8 +53,8 @@ class TradingBot:
             current_time = time.time()
             time_since_last_close = current_time - last_closed_time
             print(f"Time since last closed position: {int(time_since_last_close)} seconds")
-            if time_since_last_close < 900:  # 15 minutes
-                print("The last closed position was less than 15 minutes ago. A new order will not be placed.")
+            if time_since_last_close < 180:  # 3 minutes
+                print("The last closed position was less than 3 minutes ago. A new order will not be placed.")
                 return
             
         is_open_positions = self.data_fetcher.get_open_positions(self.symbol)
